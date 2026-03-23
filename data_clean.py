@@ -19,6 +19,7 @@ features = df.drop(columns=["name","status"])
 #Status (Answers)
 status = df["status"]
 
+
 #-----Output----
 print(f"Features count : {features.shape[1]}") #Columns count
 print(f"Sample count : {features.shape[0]}") #Row count

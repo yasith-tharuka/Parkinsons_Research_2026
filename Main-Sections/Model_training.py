@@ -1,46 +1,64 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import StratifiedKFold, cross_validate
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+
+# The 7 Classifiers
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from xgboost import XGBClassifier
 
-# --- CRITICAL FIX FOR PANDAS ---
-# Because you loaded 'y' from a CSV, it is technically a 2D table (156 rows, 1 column).
-# Scikit-Learn models expect a 1D list (156,). .values.ravel() flattens it so the AI doesn't crash.
-y_train_flat = y_train.values.ravel()
-y_test_flat = y_test.values.ravel()
+# --- 1. PREPARATION ---
+# Make sure X and y are loaded from your CSVs first!
+# X = pd.read_csv("Parkinsons_cleaned.csv")
+# y = pd.read_csv("Parkinsons_status.csv")
+y_flat = y.values.ravel() # Flatten for Scikit-Learn
 
-print("\n--- Model Training & Results ---")
+print("\n--- Initializing 7 Classifiers in Pipelines ---")
 
-# ==========================================
-# MODEL 1: Logistic Regression (The Baseline)
-# ==========================================
-# We use class_weight='balanced' to handle your 75/25 imbalance
-lr_model = LogisticRegression(class_weight='balanced', random_state=42)
-lr_model.fit(X_train_scaled, y_train_flat)             # 1. Learn from the training data
-lr_predictions = lr_model.predict(X_test_scaled)       # 2. Take the "Final Exam"
+# --- 2. THE PIPELINES ---
+# Notice how StandardScaler() is bundled INSIDE the model. 
+# This guarantees it scales perfectly during every single fold without data leakage!
+models = {
+    "Logistic Regression": make_pipeline(StandardScaler(), LogisticRegression(class_weight='balanced', random_state=42)),
+    "Decision Tree": make_pipeline(StandardScaler(), DecisionTreeClassifier(class_weight='balanced', random_state=42)),
+    "Random Forest": make_pipeline(StandardScaler(), RandomForestClassifier(class_weight='balanced', random_state=42)),
+    "SVM (Linear)": make_pipeline(StandardScaler(), SVC(kernel='linear', class_weight='balanced', random_state=42)),
+    "KNN": make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5)),
+    "Naive Bayes": make_pipeline(StandardScaler(), GaussianNB()),
+    "XGBoost": make_pipeline(StandardScaler(), XGBClassifier(scale_pos_weight=3, random_state=42, eval_metric='logloss')) 
+}
 
-lr_acc = accuracy_score(y_test_flat, lr_predictions)
-lr_f1 = f1_score(y_test_flat, lr_predictions)
-print(f"Logistic Regression -> Accuracy: {lr_acc:.2f} | F1-Score: {lr_f1:.2f}")
+# --- 3. THE 5-FOLD STRATIFIED SETUP ---
+# n_splits=5 is your K=5!
+cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+scoring_metrics = ['accuracy', 'f1', 'roc_auc', 'recall'] 
 
-# ==========================================
-# MODEL 2: Decision Tree (The Explainable Model)
-# ==========================================
-dt_model = DecisionTreeClassifier(class_weight='balanced', random_state=42)
-dt_model.fit(X_train_scaled, y_train_flat)
-dt_predictions = dt_model.predict(X_test_scaled)
+results = []
+print("Running 5-Fold Cross-Validation... (Please wait)\n")
 
-dt_acc = accuracy_score(y_test_flat, dt_predictions)
-dt_f1 = f1_score(y_test_flat, dt_predictions)
-print(f"Decision Tree       -> Accuracy: {dt_acc:.2f} | F1-Score: {dt_f1:.2f}")
+# --- 4. THE EVALUATION LOOP ---
+for name, pipeline in models.items():
+    # We pass the WHOLE dataset (X, y_flat) because the cross_validate function 
+    # automatically chops it into the 80/20 folds 5 different times!
+    cv_results = cross_validate(pipeline, X, y_flat, 
+                                cv=cv_strategy, scoring=scoring_metrics)
+    
+    # Store the average of the 5 folds
+    results.append({
+        "Model": name,
+        "Train Time (s)": round(np.mean(cv_results['fit_time']), 5),
+        "Accuracy": round(np.mean(cv_results['test_accuracy']), 3),
+        "F1-Score": round(np.mean(cv_results['test_f1']), 3),
+        "ROC-AUC": round(np.mean(cv_results['test_roc_auc']), 3),
+        "Sensitivity": round(np.mean(cv_results['test_recall']), 3) # Recall is Sensitivity
+    })
 
-# ==========================================
-# MODEL 3: Random Forest (The Heavyweight Benchmark)
-# ==========================================
-rf_model = RandomForestClassifier(class_weight='balanced', random_state=42)
-rf_model.fit(X_train_scaled, y_train_flat)
-rf_predictions = rf_model.predict(X_test_scaled)
-
-rf_acc = accuracy_score(y_test_flat, rf_predictions)
-rf_f1 = f1_score(y_test_flat, rf_predictions)
-print(f"Random Forest       -> Accuracy: {rf_acc:.2f} | F1-Score: {rf_f1:.2f}")
+# --- 5. DISPLAY RESULTS ---
+results_df = pd.DataFrame(results).sort_values(by="F1-Score", ascending=False)
+print(results_df.to_string(index=False))
