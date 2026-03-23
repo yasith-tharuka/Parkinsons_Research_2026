@@ -20,10 +20,12 @@ features = df.drop(columns=["name","status"])
 status = df["status"]
 
 #-----Output----
-print(f"Features count : {features.shape[1]}")
-print(f"Sample count : {features.shape[0]}")
+print(f"Features count : {features.shape[1]}") #Columns count
+print(f"Sample count : {features.shape[0]}") #Row count
 print(f"-- Status --\n{status.head()}")
 
 #-----Create New file with the cleaned data----
 features.to_csv("parkinsons_cleaned.csv",index=False)
+#-----Create NEw file with status
+status.to_csv("Parkinsons_status.csv",index=False)
 

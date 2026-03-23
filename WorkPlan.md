@@ -17,7 +17,13 @@
 - create the cleaned Data Set (except name and status) 
 
 #### Day 03:
--Learning Scikit-Learn basics
+- Learning Scikit-Learn basics
+
+#### Day 04 (23/03/2026):
+- Learning Scikit-Learn Basics
+- Split Data
+- Data Scalling
+
 
 
 
