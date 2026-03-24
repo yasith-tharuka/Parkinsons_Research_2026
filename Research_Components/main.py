@@ -13,7 +13,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from xgboost import XGBClassifier
 
-# PART 1:(Data Loading & Split)
+# PART 1:(Data Loading & Split) ----------------------------------------------------------------------------------------------------------------------------
 X = pd.read_csv("Parkinsons_cleaned.csv")
 y = pd.read_csv("Parkinsons_status.csv")
 
@@ -32,7 +32,7 @@ print("----------------------")
 y_train_flat = y_train.values.ravel()
 
 
-# PART 2: THE 5-FOLD CROSS VALIDATION (On X_train only!)
+# PART 2: THE 5-FOLD CROSS VALIDATION (On X_train------------------------------------------------------------------------------------------------------------------------
 print("Initializing 7 Classifiers in Pipelines")
 
 
@@ -62,9 +62,35 @@ for name, pipeline in models.items():
         "Train Time (s)": round(statistics.mean(cv_results['fit_time']), 5),
         "Accuracy": round(statistics.mean(cv_results['test_accuracy']), 3),
         "F1-Score": round(statistics.mean(cv_results['test_f1']), 3),
-        "ROC-AUC": round(statistics.mean(cv_results['te st_roc_auc']), 3),
+        "ROC-AUC": round(statistics.mean(cv_results['test_roc_auc']), 3),
         "Sensitivity": round(statistics.mean(cv_results['test_recall']), 3) 
 })
 
 results_df = pd.DataFrame(results).sort_values(by="F1-Score", ascending=False)
 print(results_df.to_string(index=False))
+
+# PART 3: FINAL TEST SET EVALUATION -------------------------------------------------------------------------------------------------------------------------
+from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+print("\nEvaluation")
+
+champion = models["XGBoost"]
+champion.fit(X_train, y_train_flat)
+final_preds = champion.predict(X_test)
+
+print(f"Final Real-World Accuracy: {accuracy_score(y_test, final_preds):.3f}")
+print(f"Final Real-World F1-Score: {f1_score(y_test, final_preds):.3f}\n")
+print(classification_report(y_test, final_preds, target_names=["Healthy (0)", "Parkinson's (1)"]))
+
+plt.figure(figsize=(5, 4))
+sns.heatmap(confusion_matrix(y_test, final_preds), annot=True, fmt='d', cmap='Blues', 
+            xticklabels=['Healthy', "Parkinson's"], yticklabels=['Healthy', "Parkinson's"])
+plt.title('Final Real-World Performance: XGBoost')
+plt.ylabel('True Diagnosis')
+plt.xlabel('Classifier Prediction')
+plt.tight_layout()
+plt.savefig("FINAL_Winning_Matrix.png", dpi=300)
+print("Program Complete'")
+

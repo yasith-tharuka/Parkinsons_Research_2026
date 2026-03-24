@@ -24,6 +24,10 @@
 - Split Data
 - Data Scalling
 
+#### Day 04 (24/03/2026):
+- Learn K-Cross Validation
+- Basic Info About Classifiers
+
 
 
 
