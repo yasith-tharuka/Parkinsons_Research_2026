@@ -28,7 +28,27 @@
 - Learn K-Cross Validation
 - Basic Info About Classifiers
 
+### 30/03/2026
+- Start making paper
+- Methodology Part
 
+## Paper Parts
+
+- Title - Done
+- Abstract 
+- Keywords
+- Introduction
+- Methodology - Done
+- Results - DOne
+- Conclusion - Done
+- References
+
+
+01.
+
+[1]Costa HN, Esteves AR, Empadinhas N, Cardoso SM. Parkinson's Disease: A Multisystem Disorder. Neurosci Bull. 2023 Jan;39(1):113-124. doi: 10.1007/s12264-022-00934-6. Epub 2022 Aug 22. PMID: 35994167; PMCID: PMC9849652.
+
+Rizzo G, Copetti M, Arcuti S, Martino D, Fontana A, Logroscino G. Accuracy of clinical diagnosis of Parkinson disease: A systematic review and meta-analysis. Neurology. 2016 Feb 9;86(6):566-76. doi: 10.1212/WNL.0000000000002350. Epub 2016 Jan 13. PMID: 26764028.
 
 
 

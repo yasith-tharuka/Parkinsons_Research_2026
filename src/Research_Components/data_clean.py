@@ -1,3 +1,6 @@
+
+
+
 import pandas as pd
 
 #Load data
@@ -29,4 +32,3 @@ print(f"-- Status --\n{status.head()}")
 features.to_csv("parkinsons_cleaned.csv",index=False)
 #-----Create NEw file with status
 status.to_csv("Parkinsons_status.csv",index=False)
-

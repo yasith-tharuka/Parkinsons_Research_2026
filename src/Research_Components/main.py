@@ -74,6 +74,7 @@ from sklearn.metrics import accuracy_score, f1_score, classification_report, con
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+
 print("\nEvaluation")
 
 champion = models["XGBoost"]

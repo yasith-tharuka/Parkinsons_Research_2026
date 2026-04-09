@@ -1,0 +1,2 @@
+Diagram 01:
+High-level architecture of the proposed Parkinson's disease classification pipeline
