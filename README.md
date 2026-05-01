@@ -1,94 +1,138 @@
 # Parkinson's Research
 
-This repository contains a student research workflow for early Parkinson's disease detection from acoustic and clinical feature data. The project explores multiple supervised machine learning pipelines, with a focus on handling class imbalance, group-aware splitting, and threshold tuning for medical screening.
+## Overview
 
-The latest experimental pipeline is in [src/Research_Components/main_new.py](src/Research_Components/main_new.py). Earlier baselines and comparison scripts are kept in [src/V003](src/V003) and [src/V004](src/V004), and older discarded work is preserved in [archive/Discarded_Programs](archive/Discarded_Programs).
+This repository contains an applied machine learning research project for early Parkinson's disease detection from voice and acoustic features. The work was developed as an undergraduate research effort and later written up as a research outcome paper.
 
-## Project Goal
+The core problem is straightforward: Parkinson's disease is difficult to identify early because symptoms can be subtle, and voice changes are often one of the earliest measurable signals. This project explores whether machine learning can detect Parkinson's disease from UCI voice data with enough reliability to support early screening.
 
-The goal is to compare lightweight classifiers for Parkinson's disease screening and evaluate whether the models can separate healthy and Parkinson's cases using the available dataset.
+The paper associated with this project reports a lightweight ensemble approach built from ML and CNN components and evaluates it on the UCI Parkinson's dataset. The reported outcome is strong on the available benchmark data, but the repository also includes later experiments that focus on leakage control, class imbalance, and threshold calibration.
 
-The current implementation emphasizes:
+## Research Problem
 
-- group-aware splitting to reduce patient leakage between train and test sets
-- class-imbalance handling with weighted XGBoost and SMOTE-based variants
-- threshold calibration to prioritize medical sensitivity and specificity
-- feature-importance reporting for basic model interpretability
+The project addresses this question:
 
-## Important Limitation
+How well can acoustic and speech-derived features be used to distinguish healthy subjects from Parkinson's patients in a small clinical-style dataset, while keeping the model simple enough for screening use?
 
-This project is not a full clinical success case. The main limitation is the database size: the dataset is relatively small, which limits how far the models can generalize and makes performance sensitive to sample composition, class imbalance, and train/test split choice.
+That problem matters because traditional diagnosis can be delayed, and automatic screening may help prioritize patients for follow-up. The challenge is that the available dataset is small and imbalanced, so model performance can look better or worse depending on how the data is split.
 
-In practical terms, the results should be treated as exploratory research rather than a finished diagnostic system. More patient data, stronger external validation, and repeated cross-validation on larger cohorts would be needed before claiming robust real-world performance.
+## Research Outcome
 
-## Repository Structure
+The paper included in this repository's references reports a lightweight ensemble approach for early Parkinson's detection using the UCI dataset. According to the paper, the final ensemble achieved 99.47% accuracy and 99.50% F1-score on the reported benchmark setup.
 
-- `src/Research_Components/` contains the most complete experimental pipeline, data-cleaning scripts, and generated CSV outputs.
-- `src/V003/` and `src/V004/` contain earlier model versions for comparison.
-- `src/Main-Sections/` contains helper scripts for preprocessing, scaling, splitting, and model training.
-- `datasets/parkinsons/` stores dataset metadata files.
-- `docs/WorkPlan.md` records the project timeline and research notes.
-- `practice/` contains learning and experimentation scripts for pandas and scikit-learn.
-- `archive/Discarded_Programs/` stores older or replaced scripts.
-- `assets/` is used for generated figures and supporting material.
+That result is useful as a research outcome, but it should not be read as proof of production readiness. The dataset is small, the benchmark is single-source, and there is no external clinical validation in this repository.
 
-## Main Data Files
+## Current Project Status
 
-The main scripts expect these CSV files to be available in the project workspace:
+This project is good enough to publish publicly as an academic portfolio project, but it should be framed honestly:
+
+- it is a research prototype, not a diagnostic product
+- it demonstrates end-to-end data preparation, model training, and evaluation
+- it is limited by database size and by the absence of a large external validation set
+- the safest claim is that it shows promising screening-oriented modeling on a small dataset
+
+## What Is In The Repo
+
+- [src/Research_Components/main_new.py](src/Research_Components/main_new.py) contains the most complete modern experiment, including group-aware splitting, candidate model selection, threshold calibration, and figure export.
+- [src/V004/main.py](src/V004/main.py) contains the simpler cost-sensitive XGBoost baseline.
+- [src/V003](src/V003) contains an earlier version of the same experimental line.
+- [src/Main-Sections](src/Main-Sections) contains preprocessing and training helper scripts.
+- [practice](practice) contains learning and practice scripts.
+- [archive/Discarded_Programs](archive/Discarded_Programs) stores older or replaced experiments.
+- [docs/WorkPlan.md](docs/WorkPlan.md) keeps the project timeline and references.
+
+## Industry-Style Folder Layout
+
+The repository now uses a cleaner top-level layout that is closer to a standard ML project:
+
+- `data/raw` for original source data
+- `data/processed` for cleaned and derived datasets
+- `models` for saved trained artifacts
+- `notebooks` for exploratory analysis and draft experiments
+- `reports/figures` for plots and exported images
+- `reports/tables` for metric tables and result summaries
+- `src/pipeline` for reusable training and evaluation code
+- `src/experiments` for runnable experiment entry points
+- `src/utils` for shared helpers
+- `tests` for automated checks
+
+Legacy folders are still kept for traceability while the project is being organized:
+
+- `src/Research_Components`
+- `src/V003`
+- `src/V004`
+- `src/Main-Sections`
+
+## Data Files
+
+The current scripts use these core files:
 
 - `Parkinsons_cleaned.csv`
 - `Parkinsons_status.csv`
 - `Parkinsons_groups.csv`
 
-In the newer pipeline, the data is loaded relative to the script location so it is less dependent on the current working directory.
+The newer pipeline loads data relative to the script location, which makes it less sensitive to the current working directory.
 
 ## Method Summary
 
-The current research pipeline typically follows these steps:
+The main experimental flow is:
 
-1. Load the cleaned feature matrix and labels.
-2. Split the data using patient groups so the same patient does not appear in both training and testing.
-3. Train a cost-sensitive classifier, usually XGBoost.
-4. Search for a decision threshold that improves the medical trade-off between sensitivity and specificity.
-5. Evaluate the final model on the held-out test set.
+1. Load cleaned acoustic features and binary labels.
+2. Split by patient group so the same patient does not leak into both train and test.
+3. Train a cost-sensitive classifier or an ensemble variant.
+4. Tune the classification threshold from validation or out-of-fold probabilities.
+5. Evaluate final performance on the held-out test set.
 6. Export a confusion matrix and feature-importance chart.
+
+The newer code path in [src/Research_Components/main_new.py](src/Research_Components/main_new.py) uses grouped cross-validation, threshold calibration, and a minimum threshold floor to avoid an overly permissive Parkinson's prediction rule.
 
 ## Environment Setup
 
 Install the core Python packages used across the project:
 
 ```bash
-pip install pandas numpy scikit-learn seaborn matplotlib xgboost imbalanced-learn
+pip install pandas numpy scikit-learn seaborn matplotlib xgboost imbalanced-learn pypdf
 ```
 
-Depending on the script you run, you may also need Jupyter or additional plotting tools.
+Depending on the script you run, you may also want Jupyter or additional plotting tools.
 
-## How to Run
+## How To Run
 
-To run the most complete experimental pipeline:
+Run the more complete modern experiment:
 
 ```bash
 python src/Research_Components/main_new.py
 ```
 
-To run the simpler specificity-focused version:
+Run the simpler XGBoost baseline:
 
 ```bash
 python src/V004/main.py
 ```
 
-These scripts print training statistics, threshold selection details, final classification metrics, and save generated figures into the script directory.
+These scripts print training statistics, threshold selection details, final classification metrics, and save generated figures to the configured output location.
 
 ## Outputs
 
-The main pipeline can generate:
+The repository produces or reports:
 
 - a final confusion matrix image
 - a feature-importance chart
-- console metrics such as accuracy, F1-score, ROC-AUC, sensitivity, and specificity
+- accuracy, F1-score, ROC-AUC, sensitivity, specificity, and balanced accuracy
+- a written research summary in the project documentation
 
-## Notes For Readers
+## Honest Limitation Statement
 
-This project is useful for comparing screening-oriented machine learning strategies, but it should not be interpreted as a medical device or a production-grade diagnostic tool. The dataset size, feature availability, and class distribution all limit the confidence of the results.
+This project should not be presented as a full clinical success. The main reason is the database size: the sample is too small to support strong generalization claims, and the benchmark is not broad enough to claim production-ready performance.
 
-If you extend the project, the most useful next steps are to add more data, test external validation sets, and compare against simpler baseline models before making stronger claims.
+If you publish this publicly, describe it as an undergraduate research prototype or an academic screening study. Do not describe it as a finished medical diagnostic system.
+
+## Good Next Steps
+
+If you want to strengthen the project further, the next high-value steps are:
+
+1. add a larger and more diverse dataset
+2. run external validation on a second cohort
+3. remove legacy experiment duplication once the final pipeline is stable
+4. add automated tests and a pinned environment file
+5. export a final results table into `reports/tables`
