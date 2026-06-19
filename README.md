@@ -33,20 +33,22 @@ This project is good enough to publish publicly as an academic portfolio project
 
 ## What Is In The Repo
 
-- [src/Research_Components/main_new.py](src/Research_Components/main_new.py) contains the most complete modern experiment, including group-aware splitting, candidate model selection, threshold calibration, and figure export.
-- [src/V004/main.py](src/V004/main.py) contains the simpler cost-sensitive XGBoost baseline.
-- [src/V003](src/V003) contains an earlier version of the same experimental line.
-- [src/Main-Sections](src/Main-Sections) contains preprocessing and training helper scripts.
+- [src/experiments/run_experiment.py](src/experiments/run_experiment.py) is the primary entry point containing the complete modern experiment, including group-aware splitting, candidate model selection, threshold calibration, and figure export to the reports directory.
+- [src/pipeline/data_preprocessing.py](src/pipeline/data_preprocessing.py) contains the data cleaning, patient ID extraction, and data division logic.
+- [tests/test_pipeline.py](tests/test_pipeline.py) contains unit tests validating the model threshold logic and preprocessing pipeline.
+- [src/Research_Components/main_new.py](src/Research_Components/main_new.py) contains the legacy standalone modern experiment.
+- [src/V004/main.py](src/V004/main.py) contains the legacy simpler cost-sensitive XGBoost baseline.
+- [src/V003](src/V003) contains an earlier legacy version of the same experimental line.
 - [practice](practice) contains learning and practice scripts.
 - [archive/Discarded_Programs](archive/Discarded_Programs) stores older or replaced experiments.
 - [docs/WorkPlan.md](docs/WorkPlan.md) keeps the project timeline and references.
 
 ## Industry-Style Folder Layout
 
-The repository now uses a cleaner top-level layout that is closer to a standard ML project:
+The repository uses a cleaner top-level layout that is closer to a standard ML project:
 
-- `data/raw` for original source data
-- `data/processed` for cleaned and derived datasets
+- `data/raw` for original source data (e.g. `parkinsons.data`)
+- `data/processed` for cleaned and derived datasets (e.g. `Parkinsons_cleaned.csv`, `Parkinsons_status.csv`, `Parkinsons_groups.csv`)
 - `models` for saved trained artifacts
 - `notebooks` for exploratory analysis and draft experiments
 - `reports/figures` for plots and exported images
@@ -67,9 +69,10 @@ Legacy folders are still kept for traceability while the project is being organi
 
 The current scripts use these core files:
 
-- `Parkinsons_cleaned.csv`
-- `Parkinsons_status.csv`
-- `Parkinsons_groups.csv`
+- `data/raw/parkinsons.data` (original dataset)
+- `data/processed/Parkinsons_cleaned.csv` (features only)
+- `data/processed/Parkinsons_status.csv` (labels only)
+- `data/processed/Parkinsons_groups.csv` (patient group IDs for group-aware splitting)
 
 The newer pipeline loads data relative to the script location, which makes it less sensitive to the current working directory.
 
@@ -82,42 +85,43 @@ The main experimental flow is:
 3. Train a cost-sensitive classifier or an ensemble variant.
 4. Tune the classification threshold from validation or out-of-fold probabilities.
 5. Evaluate final performance on the held-out test set.
-6. Export a confusion matrix and feature-importance chart.
+6. Export a confusion matrix and feature-importance chart to `reports/figures/`.
 
-The newer code path in [src/Research_Components/main_new.py](src/Research_Components/main_new.py) uses grouped cross-validation, threshold calibration, and a minimum threshold floor to avoid an overly permissive Parkinson's prediction rule.
+The newer code path in [src/experiments/run_experiment.py](src/experiments/run_experiment.py) uses grouped cross-validation, threshold calibration, and a minimum threshold floor to avoid an overly permissive Parkinson's prediction rule.
 
 ## Environment Setup
 
-Install the core Python packages used across the project:
+Install the core Python packages from the requirements file:
 
 ```bash
-pip install pandas numpy scikit-learn seaborn matplotlib xgboost imbalanced-learn pypdf
+pip install -r requirements.txt
 ```
-
-Depending on the script you run, you may also want Jupyter or additional plotting tools.
 
 ## How To Run
 
-Run the more complete modern experiment:
+1. Run the data preprocessing script to prepare the features:
+   ```bash
+   python src/pipeline/data_preprocessing.py
+   ```
 
-```bash
-python src/Research_Components/main_new.py
-```
+2. Run the main modern experiment:
+   ```bash
+   python src/experiments/run_experiment.py
+   ```
 
-Run the simpler XGBoost baseline:
+3. Run the automated tests:
+   ```bash
+   python -m unittest tests/test_pipeline.py
+   ```
 
-```bash
-python src/V004/main.py
-```
-
-These scripts print training statistics, threshold selection details, final classification metrics, and save generated figures to the configured output location.
+These scripts print training statistics, threshold selection details, final classification metrics, and save generated figures to `reports/figures/`.
 
 ## Outputs
 
 The repository produces or reports:
 
-- a final confusion matrix image
-- a feature-importance chart
+- a final confusion matrix image in `reports/figures/FINAL_Winning_Matrix.png`
+- a feature-importance chart in `reports/figures/Feature_Importance.png`
 - accuracy, F1-score, ROC-AUC, sensitivity, specificity, and balanced accuracy
 - a written research summary in the project documentation
 
@@ -134,5 +138,4 @@ If you want to strengthen the project further, the next high-value steps are:
 1. add a larger and more diverse dataset
 2. run external validation on a second cohort
 3. remove legacy experiment duplication once the final pipeline is stable
-4. add automated tests and a pinned environment file
-5. export a final results table into `reports/tables`
+4. export a final results table into `reports/tables`
