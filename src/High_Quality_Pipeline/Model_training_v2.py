@@ -1,7 +1,12 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from sklearn.model_selection import StratifiedGroupKFold, GroupKFold, cross_validate
+import warnings
+
+# Suppress warnings
+warnings.filterwarnings("ignore")
+
+from sklearn.model_selection import GroupKFold, cross_validate
 from sklearn.preprocessing import StandardScaler
 from imblearn.pipeline import make_pipeline as make_imblearn_pipeline
 from imblearn.over_sampling import SMOTE
@@ -19,19 +24,17 @@ from xgboost import XGBClassifier
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data" / "processed"
 
-print("Loading data...")
-X = pd.read_csv(DATA_DIR / "Parkinsons_cleaned.csv")
-y = pd.read_csv(DATA_DIR / "Parkinsons_status.csv")
-groups = pd.read_csv(DATA_DIR / "Parkinsons_groups.csv").values.ravel()
+print("Loading High-Quality V2 data...")
+X = pd.read_csv(DATA_DIR / "Parkinsons_v2_features.csv")
+y = pd.read_csv(DATA_DIR / "Parkinsons_v2_status.csv")
+groups = pd.read_csv(DATA_DIR / "Parkinsons_v2_groups.csv").values.ravel()
 y_flat = y.values.ravel()
 
 print("\n--- Initializing 7 Classifiers in Pipelines with SMOTE ---")
 
 # --- 2. THE PIPELINES ---
-# Notice how StandardScaler() and SMOTE() are bundled INSIDE the model. 
-# This guarantees it scales and oversamples perfectly during every single fold without data leakage!
 models = {
-    "Logistic Regression": make_imblearn_pipeline(StandardScaler(), SMOTE(random_state=42), LogisticRegression(class_weight='balanced', random_state=42)),
+    "Logistic Regression": make_imblearn_pipeline(StandardScaler(), SMOTE(random_state=42), LogisticRegression(class_weight='balanced', random_state=42, max_iter=1000)),
     "Decision Tree": make_imblearn_pipeline(StandardScaler(), SMOTE(random_state=42), DecisionTreeClassifier(class_weight='balanced', random_state=42)),
     "Random Forest": make_imblearn_pipeline(StandardScaler(), SMOTE(random_state=42), RandomForestClassifier(class_weight='balanced', random_state=42)),
     "SVM (Linear)": make_imblearn_pipeline(StandardScaler(), SMOTE(random_state=42), SVC(kernel='linear', class_weight='balanced', random_state=42)),
@@ -41,32 +44,31 @@ models = {
 }
 
 # --- 3. THE 5-FOLD STRATIFIED SETUP ---
-try:
-    cv_strategy = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)
-except ImportError:
-    cv_strategy = GroupKFold(n_splits=5)
-    
-scoring_metrics = ['accuracy', 'f1', 'roc_auc', 'recall'] 
+cv_strategy = GroupKFold(n_splits=5)
+scoring_metrics = ['accuracy', 'f1', 'roc_auc', 'recall', 'balanced_accuracy'] 
 
 results = []
-print("Running 5-Fold Group Cross-Validation... (Please wait)\n")
+print(f"Running 5-Fold Group Cross-Validation on {X.shape[0]} instances from {len(np.unique(groups))} patients... (Please wait)\n")
 
 # --- 4. THE EVALUATION LOOP ---
 for name, pipeline in models.items():
-    # We pass the groups so StratifiedGroupKFold can isolate patients
+    print(f"Training {name}...")
     cv_results = cross_validate(pipeline, X, y_flat, groups=groups,
-                                cv=cv_strategy, scoring=scoring_metrics)
+                                cv=cv_strategy, scoring=scoring_metrics, n_jobs=-1)
     
     # Store the average of the 5 folds
     results.append({
         "Model": name,
-        "Train Time (s)": round(np.mean(cv_results['fit_time']), 5),
-        "Accuracy": round(np.mean(cv_results['test_accuracy']), 3),
+        "Balanced Accuracy": round(np.mean(cv_results['test_balanced_accuracy']), 3),
         "F1-Score": round(np.mean(cv_results['test_f1']), 3),
         "ROC-AUC": round(np.mean(cv_results['test_roc_auc']), 3),
-        "Sensitivity": round(np.mean(cv_results['test_recall']), 3) # Recall is Sensitivity
+        "Sensitivity": round(np.mean(cv_results['test_recall']), 3)
     })
 
 # --- 5. DISPLAY RESULTS ---
-results_df = pd.DataFrame(results).sort_values(by="F1-Score", ascending=False)
+print("\n=======================================================================")
+print("          MODEL COMPARISON ON HIGH-QUALITY V2 DATASET")
+print("=======================================================================")
+results_df = pd.DataFrame(results).sort_values(by="Balanced Accuracy", ascending=False)
 print(results_df.to_string(index=False))
+print("=======================================================================")

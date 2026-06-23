@@ -26,15 +26,8 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-def choose_operating_threshold(
-    y_true,
-    y_prob,
-    target_sensitivity=1.00,
-    min_specificity=0.25,
-    min_sensitivity_floor=0.90,
-    sensitivity_step=0.01,
-):
-    """Pick a threshold with medical priority: sensitivity first, but keep a minimum specificity."""
+def choose_operating_threshold(y_true, y_prob):
+    """Pick a threshold that maximizes balanced accuracy."""
     candidate_thresholds = np.linspace(0.0, 1.0, 1001)
     all_candidates = []
 
@@ -53,54 +46,15 @@ def choose_operating_threshold(
             }
         )
 
-    def pick_best(candidates, policy, target_used):
-        return max(
-            candidates,
-            key=lambda item: (
-                item['specificity'],
-                item['balanced_accuracy'],
-                item['threshold'],
-            ),
-        )
-
-    # First, try strict target sensitivity with a specificity safety floor.
-    strict_candidates = [
-        row
-        for row in all_candidates
-        if row['sensitivity'] >= target_sensitivity and row['specificity'] >= min_specificity
-    ]
-    if strict_candidates:
-        best = pick_best(strict_candidates, 'strict_target_with_specificity_floor', target_sensitivity)
-        best['policy'] = 'strict_target_with_specificity_floor'
-        best['target_sensitivity_used'] = target_sensitivity
-        return best
-
-    # If strict target is impossible, relax sensitivity gradually but keep specificity floor.
-    current_target = target_sensitivity
-    while current_target >= min_sensitivity_floor:
-        adaptive_candidates = [
-            row
-            for row in all_candidates
-            if row['sensitivity'] >= current_target and row['specificity'] >= min_specificity
-        ]
-        if adaptive_candidates:
-            best = pick_best(adaptive_candidates, 'adaptive_target_with_specificity_floor', current_target)
-            best['policy'] = 'adaptive_target_with_specificity_floor'
-            best['target_sensitivity_used'] = current_target
-            return best
-        current_target = round(current_target - sensitivity_step, 10)
-
-    # Final fallback: maximize sensitivity, then specificity.
     best = max(
         all_candidates,
         key=lambda item: (
-            item['sensitivity'],
-            item['specificity'],
             item['balanced_accuracy'],
+            item['specificity'],
             item['threshold'],
         ),
     )
-    best['policy'] = 'best_possible_sensitivity'
+    best['policy'] = 'maximize_balanced_accuracy'
     best['target_sensitivity_used'] = best['sensitivity']
     return best
 
@@ -265,11 +219,7 @@ def run_experiment():
     )[:, 1]
     threshold_result = choose_operating_threshold(
         y_train_flat,
-        oof_probs,
-        target_sensitivity=1.00,
-        min_specificity=0.25,
-        min_sensitivity_floor=0.90,
-        sensitivity_step=0.01,
+        oof_probs
     )
     custom_threshold = threshold_result['threshold']
     raw_threshold = custom_threshold
